@@ -13,6 +13,15 @@ const personById = id => `https://swapi.co/api/people/${id}`
 const loadById = id =>
   Observable.ajax(personById(id))
     .pluck('response')
+    .switchMap(res =>
+      Observable.ajax(res.homeworld)
+        .pluck('response')
+        .startWith({name:'seb'}),
+      (person, homeworld) => ({
+        ...person,
+        homeworld: homeworld.name
+      })
+    )
 
 const Card = props => (
   <div>
