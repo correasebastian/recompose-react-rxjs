@@ -1,96 +1,68 @@
-import React, { Component, cloneElement, Children } from 'react';
-import logo from './logo.svg';
-import './App.css';
-import {
-  setObservableConfig,
-  mapPropsStream,
-  createEventHandler,
-  compose
-} from "recompose";
-import rxjsConfig from "recompose/rxjsObservableConfig";
-import { Observable } from "rxjs/Observable";
-import * as R from 'ramda'
+import "./styles.css"
+import React from "react"
+import ReactDOM from "react-dom"
 
 
-setObservableConfig(rxjsConfig)
-
-const Counter = props => (
-  <div>
-    <button onClick={props.onInc}>+</button>
-    <button onClick={props.onDec}>-</button>
-    <h3>{props.count}</h3>
-    <h1>{props.person.name}</h1>
-  </div>
-)
-
-const personNameLense = R.lensPath(['person', 'name'])
-
-const count = mapPropsStream(props$ => {
-  const { stream: onInc$, handler: onInc } = createEventHandler()
-  const { stream: onDec$, handler: onDec } = createEventHandler()
-
-  return props$
-    .switchMap(props =>
-      Observable.merge(
-        onInc$.mapTo(1),
-        onDec$.mapTo(-1)
-      )
-      .startWith(0)
-      .scan((acc, curr) => acc + curr),
-      (props, count) => ({
-        ...props,
-        count,
-        onInc,
-        onDec
-      })
+class Toggle extends React.Component {
+  static defaultProps = { onToggle: () => {} }
+  state = { on: false }
+  toggle = () =>
+    this.setState(
+      ({ on }) => ({ on: !on }),
+      () => this.props.onToggle(this.state.on)
     )
-})
+  render() {
+    return this.props.render({
+      on: this.state.on,
+      toggle: this.toggle
+    })
+  }
+}
 
-
-const load = mapPropsStream(props$ =>
-  props$
-  .switchMap( props =>
-      Observable.ajax(
-        `https://swapi.co/api/people/${props.count}`
-      )
-      .pluck("response")
-      .startWith({ name: "loading..." })
-      .catch(err =>
-        Observable.of({ name: "Not found" })
-      ),
-    (props, person) => ({ ...props, person })
+function MyToggle({ on, toggle }) {
+  return (
+    <button onClick={toggle}>{on ? "on" : "off"}</button>
   )
-)
+}
 
-const type = lens =>
-  mapPropsStream(props$ =>
-    props$.
-      switchMap(props =>
-        Observable.zip(
-          Observable.from(R.view(lens,props)),
-          Observable.interval(100),
-          letter => letter
-        )
-          .scan((acc, curr) => acc + curr),
-      (props, name) => R.set(lens, name, props)
-      )
+function App() {
+  return (
+    <Toggle onToggle={on => console.log("toggle", on)}
+      render={({ on, toggle }) => (
+        <div>
+          {on ? "The button is on" : "The button is off"}
+          <Switch on={on} onClick={toggle} />
+          <hr />
+          <MyToggle on={on} toggle={toggle} />
+        </div>
+      )}
+    />
   )
+}
 
-const DateDisplay = props => <h1>{props.date}</h1>
-const dateLens = R.lensProp("date")
-const DateTypewriter = type(dateLens)( DateDisplay )
+/*
+ *
+ *
+ * Below here are irrelevant
+ * implementation details...
+ *
+ *
+ */
 
-const CounterWithPersonLoader =
-  compose(
-    count, load, type(personNameLense)
-  )(Counter)
+function Switch({ on, className = "", ...props }) {
+  return (
+    <div className="toggle">
+      <input className="toggle-input" type="checkbox" />
+      <button
+        className={`${className} toggle-btn ${
+          on ? "toggle-btn-on" : "toggle-btn-off"
+        }`}
+        aria-expanded={on}
+        {...props}
+      />
+    </div>
+  )
+}
 
-
-const App = () => (
-  <div>
-    <CounterWithPersonLoader  />
-    <DateTypewriter date={new Date().toDateString()} />
-  </div>
-)
 
 export default App;
