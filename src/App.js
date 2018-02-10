@@ -8,8 +8,29 @@ import { Observable } from "rxjs/Observable";
 
 setObservableConfig(rxjsConfig)
 
-const App = componentFromStream(
-  props$ =>  Observable.interval(1000).map(count => (<h1>{count}</h1> ))
+const createTypeWritter = (msg, speed=100) =>
+  Observable.zip(
+    Observable.from(msg),
+    Observable.interval(speed),
+    letter => letter
+  )
+  .scan((acc, curr) => acc + curr)
+
+
+const App = props => (
+  <div>
+    <h1>{props.message}</h1>
+  </div>
 )
 
-export default App;
+const StreamApp = componentFromStream(
+  props$ =>
+    props$
+      .switchMap(props =>
+        createTypeWritter(props.message, props.speed))
+      .map(message => ({ message }))
+      .map(App)
+)
+
+
+export default StreamApp;
