@@ -1,4 +1,4 @@
-import React, { Component, cloneElement } from 'react';
+import React, { Component, cloneElement, Children } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { setObservableConfig, componentFromStream, createEventHandler } from "recompose";
@@ -27,17 +27,21 @@ const CounterStream = componentFromStream(props$ => {
         onInc$.mapTo(1),
         onDec$.mapTo(-1)
       )
-     .startWith(props.value)
-     .scan((acc,curr)=> acc + curr)
-     .map(value => ({value, onInc, onDec}))
-     .map(newProps => cloneElement(props.children, newProps))
+        .startWith(props.value)
+        .scan((acc, curr) => acc + curr)
+        .map(value => ({ value, onInc, onDec }))
+        .map(newProps =>
+          Children.map(props.children, 
+            child => 
+            cloneElement(child, newProps)
+          )
+        )
     )
-
-
 })
 
 const App = () => (
  <CounterStream value={3}>
+    <Counter />
     <Counter />
  </CounterStream>
 )
