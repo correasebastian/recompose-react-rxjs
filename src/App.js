@@ -9,6 +9,7 @@ import {
 } from "recompose";
 import rxjsConfig from "recompose/rxjsObservableConfig";
 import { Observable } from "rxjs/Observable";
+import * as R from 'ramda'
 
 
 setObservableConfig(rxjsConfig)
@@ -21,6 +22,8 @@ const Counter = props => (
     <h1>{props.person.name}</h1>
   </div>
 )
+
+const personNameLense = R.lensPath(['person', 'name'])
 
 const count = mapPropsStream(props$ => {
   const { stream: onInc$, handler: onInc } = createEventHandler()
@@ -59,24 +62,35 @@ const load = mapPropsStream(props$ =>
   )
 )
 
-const type = mapPropsStream(props$ =>
-  props$.
-    switchMap(props =>
-      Observable.zip(
-        Observable.from(props.person.name),
-        Observable.interval(300),
-        letter => letter
+const type = lens =>
+  mapPropsStream(props$ =>
+    props$.
+      switchMap(props =>
+        Observable.zip(
+          Observable.from(R.view(lens,props)),
+          Observable.interval(100),
+          letter => letter
+        )
+          .scan((acc, curr) => acc + curr),
+      (props, name) => R.set(lens, name, props)
       )
-        .scan((acc, curr) => acc + curr),
-    (props, name) => ({...props, person:{ ...props.person, name }})
   )
-)
 
-const CounterWithPersonLoader = compose(count, load, type)(Counter)
+const DateDisplay = props => <h1>{props.date}</h1>
+const dateLens = R.lensProp("date")
+const DateTypewriter = type(dateLens)( DateDisplay )
+
+const CounterWithPersonLoader =
+  compose(
+    count, load, type(personNameLense)
+  )(Counter)
 
 
 const App = () => (
- <CounterWithPersonLoader  />
+  <div>
+    <CounterWithPersonLoader  />
+    <DateTypewriter date={new Date().toDateString()} />
+  </div>
 )
 
 export default App;
