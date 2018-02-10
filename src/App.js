@@ -7,33 +7,37 @@ import { Observable } from "rxjs/Observable";
 
 
 setObservableConfig(rxjsConfig)
-const loginput = e => console.log(e.target.value);
 
-const SimpleForm = ({ text, onInput }) => (
+const Counter = ({ value, onInc, onDec }) => (
   <div>
-    <input type="text" onInput={onInput} />
-    <h2>{text}</h2>
+    <button onClick={onInc}>+</button>
+    <h2>{value}</h2>
+    <button onClick={onDec}>-</button>
   </div>
 )
 
-const SimpleFormStream =
-  componentFromStream(props$ => {
-    const { stream: onInput$, handler: onInput } = createEventHandler();
 
-    const text$ = onInput$
-      .map(e => e.target.value)
-      .delay(500)
-      .startWith('')
+const CounterStream = componentFromStream(props$ => {
+  const { stream: onInc$, handler: onInc } = createEventHandler()
+  const { stream: onDec$, handler: onDec } = createEventHandler()
 
-    return text$
-      .map(text => ({ text, onInput }))
-      .map(SimpleForm)
+  return props$
+    .switchMap(props =>
+      Observable.merge(
+        onInc$.mapTo(1),
+        onDec$.mapTo(-1)
+      )
+     .startWith(props.value)
+     .scan((acc,curr)=> acc + curr)
+    )
+    .map(value => ({value, onInc, onDec}))
+    .map(Counter)
 
-  })
 
+})
 
 const App = () => (
- <SimpleFormStream />
+ <CounterStream value={3}/>
 )
 
 export default App;
