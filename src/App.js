@@ -8,29 +8,28 @@ import { Observable } from "rxjs/Observable";
 
 setObservableConfig(rxjsConfig)
 
-const createTypeWritter = (msg, speed=100) =>
-  Observable.zip(
-    Observable.from(msg),
-    Observable.interval(speed),
-    letter => letter
-  )
-  .scan((acc, curr) => acc + curr)
+const personById = id => `https://swapi.co/api/people/${id}`
 
+const loadById = id =>
+  Observable.ajax(personById(id))
+    .pluck('response')
 
-const App = props => (
+const Card = props => (
   <div>
-    <h1>{props.message}</h1>
+    <h1>{props.name}</h1>
+    <h2>{props.homeworld}</h2>
   </div>
 )
 
-const StreamApp = componentFromStream(
+
+const CardStream = componentFromStream(
   props$ =>
     props$
       .switchMap(props =>
-        createTypeWritter(props.message, props.speed))
-      .map(message => ({ message }))
-      .map(App)
+        loadById(props.id)
+      )
+      .map(Card)
 )
 
 
-export default StreamApp;
+export default CardStream;
